@@ -25,7 +25,7 @@ function UserPanel({ userInfo, setUserInfo }) {
   }
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 h-full">
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 h-full overflow-y-auto">
       <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
         <User className="w-4 h-4 text-purple-600" />
         Seus Dados (opcional)

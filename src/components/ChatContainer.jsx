@@ -100,7 +100,7 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
     : 'Chatbot Metafísica da Saúde'
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
       {/* Header do Chat */}
       <div className={`${colors.header} text-white px-4 py-3 flex items-center justify-between`}>
         <div className="flex items-center gap-3">
