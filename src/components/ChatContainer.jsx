@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send } from 'lucide-react'
+import { Send, Palette, Heart } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-function ChatContainer({ activeTheme, userInfo }) {
+function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -102,15 +102,42 @@ function ChatContainer({ activeTheme, userInfo }) {
   return (
     <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
       {/* Header do Chat */}
-      <div className={`${colors.header} text-white px-4 py-3 flex items-center gap-3`}>
-        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 p-1">
-          <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+      <div className={`${colors.header} text-white px-4 py-3 flex items-center justify-between`}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 p-1">
+            <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm">Chatbot Valcapelli</h3>
+            <p className="text-xs text-white/80">Viva numa boa!</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-sm">
-            {chatTitle}
-          </h3>
-          <p className="text-xs text-white/80">Viva numa boa!</p>
+        
+        {/* Seletor de Temas */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTheme('cromoterapia')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+              activeTheme === 'cromoterapia'
+                ? 'bg-white text-purple-600 shadow-md'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Cromoterapia</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTheme('metafisica')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+              activeTheme === 'metafisica'
+                ? 'bg-white text-teal-600 shadow-md'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Metafísica</span>
+          </button>
         </div>
       </div>
 
@@ -142,8 +169,27 @@ function ChatContainer({ activeTheme, userInfo }) {
             {msg.isUser ? (
               msg.text
             ) : (
-              <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-pre:bg-gray-800 prose-pre:text-gray-100 prose-code:text-purple-600 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <div className="markdown-content">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                    ul: ({children}) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                    ol: ({children}) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                    li: ({children}) => <li className="pl-1">{children}</li>,
+                    strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                    em: ({children}) => <em className="italic">{children}</em>,
+                    h1: ({children}) => <h1 className="text-lg font-bold mb-2 mt-3">{children}</h1>,
+                    h2: ({children}) => <h2 className="text-base font-bold mb-2 mt-3">{children}</h2>,
+                    h3: ({children}) => <h3 className="text-sm font-bold mb-1 mt-2">{children}</h3>,
+                    h4: ({children}) => <h4 className="text-sm font-semibold mb-2 mt-3 text-gray-800">{children}</h4>,
+                    code: ({inline, children}) => inline 
+                      ? <code className="bg-purple-100 text-purple-700 px-1 rounded text-xs">{children}</code>
+                      : <code className="block bg-gray-800 text-gray-100 p-3 rounded-lg my-2 text-xs overflow-x-auto">{children}</code>,
+                    pre: ({children}) => <pre className="my-2">{children}</pre>,
+                    blockquote: ({children}) => <blockquote className="border-l-4 border-purple-400 pl-3 italic my-2">{children}</blockquote>,
+                  }}
+                >
                   {msg.text}
                 </ReactMarkdown>
               </div>
