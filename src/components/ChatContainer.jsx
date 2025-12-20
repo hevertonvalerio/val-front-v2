@@ -93,18 +93,22 @@ function ChatContainer({ activeTheme, userInfo }) {
     ? 'Olá! Sou seu assistente de Cromoterapia. Posso ajudar você a entender como as cores influenciam sua saúde e bem-estar.'
     : 'Olá! Sou seu assistente de Metafísica da Saúde. Posso ajudar você a compreender as causas emocionais por trás dos sintomas físicos.'
 
+  const chatTitle = activeTheme === 'cromoterapia' 
+    ? 'Chatbot Cromoterapia' 
+    : 'Chatbot Metafísica da Saúde'
+
   return (
-    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full min-h-[500px]">
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
       {/* Header do Chat */}
-      <div className={`${colors.header} text-white px-5 py-4 flex items-center gap-3`}>
-        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-          <Sparkles className={`w-5 h-5 ${colors.icon}`} />
+      <div className={`${colors.header} text-white px-4 py-3 flex items-center gap-3`}>
+        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 p-1">
+          <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
         </div>
         <div>
-          <h3 className="font-semibold">
-            {activeTheme === 'cromoterapia' ? '🎨 Cromoterapia' : '💫 Metafísica da Saúde'}
+          <h3 className="font-semibold text-sm">
+            {chatTitle}
           </h3>
-          <p className="text-xs text-white/80">Viva numa boa! - Converse comigo</p>
+          <p className="text-xs text-white/80">Viva numa boa!</p>
         </div>
       </div>
 
