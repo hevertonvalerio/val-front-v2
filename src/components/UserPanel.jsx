@@ -1,7 +1,16 @@
 import { useState } from 'react'
-import { User, Phone, Mail, Check } from 'lucide-react'
+import { User, Phone, Mail, Check, ExternalLink, BookOpen, Palette, Heart, ShoppingBag, Video, Calendar } from 'lucide-react'
 
 function UserPanel({ userInfo, setUserInfo }) {
+  const links = [
+    { name: 'Site Oficial', url: 'https://www.valcapelli.com/', icon: ExternalLink },
+    { name: 'Cromoterapia', url: 'https://www.valcapelli.com/cromoterapia-o-segredo-das-cores', icon: Palette },
+    { name: 'Metafísica da Saúde', url: 'https://www.valcapelli.com/metafisica-da-saude', icon: Heart },
+    { name: 'Livros', url: 'https://www.valcapelli.com/livros', icon: BookOpen },
+    { name: 'Loja', url: 'https://www.valcapelli.com/loja', icon: ShoppingBag },
+    { name: 'Vídeos', url: 'https://www.valcapelli.com/videos', icon: Video },
+    { name: 'Agenda', url: 'https://www.valcapelli.com/agenda', icon: Calendar },
+  ]
   const [saved, setSaved] = useState(false)
 
   const handleChange = (e) => {
@@ -80,6 +89,31 @@ function UserPanel({ userInfo, setUserInfo }) {
             'Salvar dados'
           )}
         </button>
+      </div>
+
+      {/* Links de Acesso */}
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <h4 className="font-semibold text-gray-700 text-xs mb-3 flex items-center gap-2">
+          <ExternalLink className="w-3.5 h-3.5 text-purple-600" />
+          Acesse:
+        </h4>
+        <div className="space-y-2">
+          {links.map((link, index) => {
+            const IconComponent = link.icon
+            return (
+              <a
+                key={index}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 text-xs text-gray-600 bg-gray-50 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors"
+              >
+                <IconComponent className="w-3.5 h-3.5" />
+                {link.name}
+              </a>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
