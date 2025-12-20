@@ -1,0 +1,172 @@
+import { useState, useRef, useEffect } from 'react'
+import { Send, Sparkles, User } from 'lucide-react'
+
+function ChatContainer({ activeTheme, userInfo }) {
+  const [messages, setMessages] = useState([])
+  const [inputValue, setInputValue] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const chatAreaRef = useRef(null)
+
+  const API_KEY = import.meta.env.VITE_API_KEY || ''
+  const FLOW_ID = import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
+  const HOST_URL = import.meta.env.VITE_HOST_URL || 'https://langflow.inovai.app'
+
+  const themeColors = {
+    cromoterapia: {
+      header: 'bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400',
+      userMsg: 'bg-gradient-to-r from-purple-600 to-pink-500',
+      welcome: 'bg-gradient-to-br from-purple-100 to-pink-100',
+      welcomeTitle: 'text-purple-600',
+      icon: 'text-purple-600',
+    },
+    metafisica: {
+      header: 'bg-gradient-to-r from-teal-500 via-blue-500 to-indigo-500',
+      userMsg: 'bg-gradient-to-r from-teal-500 to-blue-500',
+      welcome: 'bg-gradient-to-br from-teal-100 to-blue-100',
+      welcomeTitle: 'text-teal-600',
+      icon: 'text-teal-600',
+    }
+  }
+
+  const colors = themeColors[activeTheme]
+
+  useEffect(() => {
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
+    }
+  }, [messages, isTyping])
+
+  const sendMessage = async () => {
+    const text = inputValue.trim()
+    if (!text) return
+
+    const newUserMessage = { text, isUser: true }
+    setMessages(prev => [...prev, newUserMessage])
+    setInputValue('')
+    setIsTyping(true)
+
+    try {
+      const response = await fetch(`${HOST_URL}/api/v1/run/${FLOW_ID}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        },
+        body: JSON.stringify({
+          input_value: text,
+          output_type: 'chat',
+          input_type: 'chat'
+        })
+      })
+
+      const data = await response.json()
+      let botResponse = 'Desculpe, não consegui processar sua mensagem.'
+
+      if (data.outputs?.[0]?.outputs?.[0]) {
+        const output = data.outputs[0].outputs[0]
+        if (output.results?.message?.text) {
+          botResponse = output.results.message.text
+        } else if (output.messages?.[0]?.message) {
+          botResponse = output.messages[0].message
+        } else if (output.artifacts?.message) {
+          botResponse = output.artifacts.message
+        }
+      }
+
+      setMessages(prev => [...prev, { text: botResponse, isUser: false }])
+    } catch (error) {
+      console.error('Erro:', error)
+      setMessages(prev => [...prev, { text: 'Ops! Ocorreu um erro. Tente novamente.', isUser: false }])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const welcomeMessage = activeTheme === 'cromoterapia' 
+    ? 'Olá! Sou seu assistente de Cromoterapia. Posso ajudar você a entender como as cores influenciam sua saúde e bem-estar.'
+    : 'Olá! Sou seu assistente de Metafísica da Saúde. Posso ajudar você a compreender as causas emocionais por trás dos sintomas físicos.'
+
+  return (
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full min-h-[500px]">
+      {/* Header do Chat */}
+      <div className={`${colors.header} text-white px-5 py-4 flex items-center gap-3`}>
+        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+          <Sparkles className={`w-5 h-5 ${colors.icon}`} />
+        </div>
+        <div>
+          <h3 className="font-semibold">
+            {activeTheme === 'cromoterapia' ? '🎨 Cromoterapia' : '💫 Metafísica da Saúde'}
+          </h3>
+          <p className="text-xs text-white/80">Viva numa boa! - Converse comigo</p>
+        </div>
+      </div>
+
+      {/* Área de Mensagens */}
+      <div ref={chatAreaRef} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+        {/* Mensagem de Boas-vindas */}
+        <div className={`${colors.welcome} rounded-2xl p-5 text-center`}>
+          <h3 className={`${colors.welcomeTitle} font-semibold text-lg mb-2`}>
+            Bem-vindo(a)! 👋
+          </h3>
+          <p className="text-gray-600 text-sm">{welcomeMessage}</p>
+          {userInfo.name && (
+            <p className="mt-2 text-xs text-gray-500">
+              Olá, <span className="font-semibold text-purple-600">{userInfo.name}</span>! Como posso ajudar?
+            </p>
+          )}
+        </div>
+
+        {/* Mensagens */}
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+              msg.isUser
+                ? `${colors.userMsg} text-white self-end rounded-br-sm`
+                : 'bg-gray-100 text-gray-700 self-start rounded-bl-sm'
+            }`}
+          >
+            {msg.text}
+          </div>
+        ))}
+
+        {/* Indicador de Digitação */}
+        {isTyping && (
+          <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 self-start flex gap-1">
+            <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+            <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+            <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+          </div>
+        )}
+      </div>
+
+      {/* Área de Input */}
+      <div className="border-t border-gray-200 p-4 flex gap-3 bg-white">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Digite sua mensagem..."
+          className="flex-1 px-5 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-purple-500 transition-colors"
+        />
+        <button
+          onClick={sendMessage}
+          disabled={!inputValue.trim() || isTyping}
+          className={`${colors.header} text-white w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100`}
+        >
+          <Send className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default ChatContainer
