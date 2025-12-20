@@ -1,38 +1,45 @@
 import { useState } from 'react'
 import Header from './components/Header'
-import ThemeSelector from './components/ThemeSelector'
 import ChatContainer from './components/ChatContainer'
 import UserPanel from './components/UserPanel'
 import Footer from './components/Footer'
+import ColorPicker from './components/ColorPicker'
 
 function App() {
   const [activeTheme, setActiveTheme] = useState('cromoterapia')
   const [userInfo, setUserInfo] = useState({ name: '', phone: '', email: '' })
+  const [bgColor, setBgColor] = useState(null) // null = gradiente animado
+
+  const backgroundStyle = bgColor 
+    ? { background: bgColor }
+    : {}
 
   return (
-    <div className="min-h-screen flex flex-col font-poppins">
-      <Header />
+    <div 
+      className={`h-screen flex flex-col font-poppins overflow-hidden ${!bgColor ? 'animated-gradient' : ''}`}
+      style={backgroundStyle}
+    >
+      <Header activeTheme={activeTheme} setActiveTheme={setActiveTheme} />
       
-      <main className="flex-1 flex flex-col items-center px-3 py-3 gap-3">
-        <ThemeSelector activeTheme={activeTheme} setActiveTheme={setActiveTheme} />
+      <main className="flex-1 flex items-stretch justify-center px- sm:px-4 py-2 gap-2 min-h-0 ml 0">
+        {/* Painel do usuário à esquerda */}
+        <div className="w-56 flex-shrink-0 hidden xl:block">
+          <UserPanel userInfo={userInfo} setUserInfo={setUserInfo} />
+        </div>
         
-        <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3 flex-1 min-h-0">
-          {/* Painel do usuário à esquerda */}
-          <div className="lg:w-72 flex-shrink-0">
-            <UserPanel userInfo={userInfo} setUserInfo={setUserInfo} />
-          </div>
-          
-          {/* Chat como destaque principal */}
-          <div className="flex-1 min-h-[500px] lg:min-h-0">
-            <ChatContainer 
-              activeTheme={activeTheme} 
-              userInfo={userInfo}
-            />
-          </div>
+        {/* Chat centralizado como destaque principal - ocupa máximo espaço */}
+        <div className="flex-1 max-w-7xl h-full">
+          <ChatContainer 
+            activeTheme={activeTheme} 
+            userInfo={userInfo}
+          />
         </div>
       </main>
 
       <Footer />
+      
+      {/* Seletor de cor de fundo */}
+      <ColorPicker bgColor={bgColor} setBgColor={setBgColor} />
     </div>
   )
 }
