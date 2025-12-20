@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, User } from 'lucide-react'
+import { Send } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function ChatContainer({ activeTheme, userInfo }) {
   const [messages, setMessages] = useState([])
@@ -131,13 +133,21 @@ function ChatContainer({ activeTheme, userInfo }) {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+            className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
               msg.isUser
                 ? `${colors.userMsg} text-white self-end rounded-br-sm`
                 : 'bg-gray-100 text-gray-700 self-start rounded-bl-sm'
             }`}
           >
-            {msg.text}
+            {msg.isUser ? (
+              msg.text
+            ) : (
+              <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-pre:bg-gray-800 prose-pre:text-gray-100 prose-code:text-purple-600 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {msg.text}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         ))}
 
