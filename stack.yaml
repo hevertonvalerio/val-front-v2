@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  chatbot-valcapelli:
+    image: chatbot-valcapelli:latest
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.chatbot.rule=Host(`chatbot.example.com`)"
+        - "traefik.http.routers.chatbot.entrypoints=websecure"
+        - "traefik.http.routers.chatbot.tls.certresolver=letsencrypt"
+        - "traefik.http.services.chatbot.loadbalancer.server.port=80"
+    environment:
+      - API_KEY=${API_KEY}
+      - FLOW_ID=${FLOW_ID:-61a17804-9284-446d-8e60-3801aef9bb60}
+      - HOST_URL=${HOST_URL:-https://langflow.inovai.app}
+    networks:
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  traefik-public:
+    external: true

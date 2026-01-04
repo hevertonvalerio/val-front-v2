@@ -2,16 +2,18 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Palette, Heart } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import indexedDBService from '../services/indexedDBService'
 
-function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
+function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, onSessionUpdate }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const chatAreaRef = useRef(null)
+  const SESSION_EXPIRY_DAYS = 7
 
-  const API_KEY = import.meta.env.VITE_API_KEY || ''
-  const FLOW_ID = import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
-  const HOST_URL = import.meta.env.VITE_HOST_URL || 'https://langflow.inovai.app'
+  const API_KEY = window.ENV?.API_KEY || import.meta.env.VITE_API_KEY || ''
+  const FLOW_ID = window.ENV?.FLOW_ID || import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
+  const HOST_URL = window.ENV?.HOST_URL || import.meta.env.VITE_HOST_URL || 'https://langflow.inovai.app'
 
   const themeColors = {
     cromoterapia: {
@@ -38,14 +40,73 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
     }
   }, [messages, isTyping])
 
+  useEffect(() => {
+    if (currentSession) {
+      loadSessionMessages()
+    }
+  }, [currentSession?.id])
+
+  useEffect(() => {
+    clearExpiredSessions()
+  }, [])
+
+  const clearExpiredSessions = async () => {
+    try {
+      const deletedCount = await indexedDBService.clearExpiredSessions(SESSION_EXPIRY_DAYS)
+      if (deletedCount > 0) {
+        console.log(`${deletedCount} sessões expiradas foram removidas`)
+      }
+    } catch (error) {
+      console.error('Erro ao limpar sessões expiradas:', error)
+    }
+  }
+
+  const loadSessionMessages = async () => {
+    if (!currentSession) return
+    
+    try {
+      const session = await indexedDBService.getSession(currentSession.id)
+      if (session && session.messages) {
+        setMessages(session.messages)
+      } else {
+        setMessages([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error)
+      setMessages([])
+    }
+  }
+
+  const saveSessionMessages = async (updatedMessages) => {
+    if (!currentSession) return
+
+    try {
+      const session = {
+        ...currentSession,
+        messages: updatedMessages,
+        messageCount: updatedMessages.length,
+        updatedAt: Date.now()
+      }
+      await indexedDBService.saveSession(session)
+      if (onSessionUpdate) {
+        onSessionUpdate(session)
+      }
+    } catch (error) {
+      console.error('Erro ao salvar mensagens:', error)
+    }
+  }
+
   const sendMessage = async () => {
     const text = inputValue.trim()
     if (!text) return
 
-    const newUserMessage = { text, isUser: true }
-    setMessages(prev => [...prev, newUserMessage])
+    const newUserMessage = { text, isUser: true, timestamp: Date.now() }
+    const updatedMessages = [...messages, newUserMessage]
+    setMessages(updatedMessages)
     setInputValue('')
     setIsTyping(true)
+    
+    await saveSessionMessages(updatedMessages)
 
     try {
       const response = await fetch(`${HOST_URL}/api/v1/run/${FLOW_ID}`, {
@@ -75,10 +136,16 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
         }
       }
 
-      setMessages(prev => [...prev, { text: botResponse, isUser: false }])
+      const botMessage = { text: botResponse, isUser: false, timestamp: Date.now() }
+      const finalMessages = [...updatedMessages, botMessage]
+      setMessages(finalMessages)
+      await saveSessionMessages(finalMessages)
     } catch (error) {
       console.error('Erro:', error)
-      setMessages(prev => [...prev, { text: 'Ops! Ocorreu um erro. Tente novamente.', isUser: false }])
+      const errorMessage = { text: 'Ops! Ocorreu um erro. Tente novamente.', isUser: false, timestamp: Date.now() }
+      const errorMessages = [...updatedMessages, errorMessage]
+      setMessages(errorMessages)
+      await saveSessionMessages(errorMessages)
     } finally {
       setIsTyping(false)
     }
