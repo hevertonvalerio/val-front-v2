@@ -4,6 +4,9 @@ import ChatSessionManager from './ChatSessionManager'
 import UserPanel from './UserPanel'
 
 const STORAGE_KEY = 'langflow_chat_sessions'
+const STORAGE_EXPIRY_KEY = 'langflow_chat_sessions_expiry'
+// Tempo de expiração em milissegundos (7 dias)
+const EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000
 
 const generateSessionId = () => `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 
@@ -14,8 +17,33 @@ const createNewSession = () => ({
   createdAt: Date.now()
 })
 
+const isExpired = () => {
+  try {
+    const expiryTime = localStorage.getItem(STORAGE_EXPIRY_KEY)
+    if (!expiryTime) return false
+    return Date.now() > parseInt(expiryTime, 10)
+  } catch (e) {
+    return false
+  }
+}
+
+const clearExpiredData = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(STORAGE_EXPIRY_KEY)
+  } catch (e) {
+    console.error('Erro ao limpar dados expirados:', e)
+  }
+}
+
 const loadSessions = () => {
   try {
+    // Verifica se os dados expiraram
+    if (isExpired()) {
+      clearExpiredData()
+      return [createNewSession()]
+    }
+
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const sessions = JSON.parse(stored)
@@ -29,7 +57,11 @@ const loadSessions = () => {
 
 const saveSessions = (sessions) => {
   try {
+    // Salva os dados
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+    // Define o tempo de expiração (agora + tempo de expiração)
+    const expiryTime = Date.now() + EXPIRY_TIME
+    localStorage.setItem(STORAGE_EXPIRY_KEY, expiryTime.toString())
   } catch (e) {
     console.error('Erro ao salvar sessões:', e)
   }
