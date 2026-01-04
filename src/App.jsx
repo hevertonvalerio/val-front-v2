@@ -1,34 +1,18 @@
 import { useState } from 'react'
 import Header from './components/Header'
-import ThemeSelector from './components/ThemeSelector'
 import ChatContainer from './components/ChatContainer'
-import UserPanel from './components/UserPanel'
 import Footer from './components/Footer'
 
 function App() {
-  const [activeTheme, setActiveTheme] = useState('cromoterapia')
   const [userInfo, setUserInfo] = useState({ name: '', phone: '', email: '' })
 
   return (
-    <div className="min-h-screen flex flex-col font-poppins">
+    <div className="h-screen flex flex-col font-poppins overflow-hidden">
       <Header />
       
-      <main className="flex-1 flex flex-col items-center px-3 py-3 gap-3">
-        <ThemeSelector activeTheme={activeTheme} setActiveTheme={setActiveTheme} />
-        
-        <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3 flex-1 min-h-0">
-          {/* Painel do usuário à esquerda */}
-          <div className="lg:w-72 flex-shrink-0">
-            <UserPanel userInfo={userInfo} setUserInfo={setUserInfo} />
-          </div>
-          
-          {/* Chat como destaque principal */}
-          <div className="flex-1 min-h-[500px] lg:min-h-0">
-            <ChatContainer 
-              activeTheme={activeTheme} 
-              userInfo={userInfo}
-            />
-          </div>
+      <main className="flex-1 flex flex-col items-center px-2 py-2 md:px-3 md:py-3 gap-2 md:gap-3 min-h-0 overflow-hidden">
+        <div className="w-full max-w-6xl h-full flex flex-col min-h-0">
+          <ChatContainer activeTheme="cromoterapia" userInfo={userInfo} setUserInfo={setUserInfo} />
         </div>
       </main>
 

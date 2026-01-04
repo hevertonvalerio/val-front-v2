@@ -1,11 +1,50 @@
-import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, User } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Send, MessageCircle, Menu, X } from 'lucide-react'
+import ChatSessionManager from './ChatSessionManager'
+import UserPanel from './UserPanel'
 
-function ChatContainer({ activeTheme, userInfo }) {
-  const [messages, setMessages] = useState([])
+const STORAGE_KEY = 'langflow_chat_sessions'
+
+const generateSessionId = () => `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+
+const createNewSession = () => ({
+  id: generateSessionId(),
+  title: 'Nova conversa',
+  messages: [],
+  createdAt: Date.now()
+})
+
+const loadSessions = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const sessions = JSON.parse(stored)
+      if (sessions.length > 0) return sessions
+    }
+  } catch (e) {
+    console.error('Erro ao carregar sessões:', e)
+  }
+  return [createNewSession()]
+}
+
+const saveSessions = (sessions) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+  } catch (e) {
+    console.error('Erro ao salvar sessões:', e)
+  }
+}
+
+function ChatContainer({ activeTheme, userInfo, setUserInfo }) {
+  const [sessions, setSessions] = useState(loadSessions)
+  const [activeSessionId, setActiveSessionId] = useState(() => loadSessions()[0]?.id)
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const chatAreaRef = useRef(null)
+
+  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0]
+  const messages = activeSession?.messages || []
 
   const API_KEY = import.meta.env.VITE_API_KEY || ''
   const FLOW_ID = import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
@@ -30,18 +69,79 @@ function ChatContainer({ activeTheme, userInfo }) {
 
   const colors = themeColors[activeTheme]
 
+  // Salva sessões no localStorage quando mudam
+  useEffect(() => {
+    saveSessions(sessions)
+  }, [sessions])
+
   useEffect(() => {
     if (chatAreaRef.current) {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
     }
   }, [messages, isTyping])
 
+  // Atualiza mensagens da sessão ativa
+  const updateSessionMessages = useCallback((newMessages) => {
+    setSessions(prev => prev.map(s => 
+      s.id === activeSessionId 
+        ? { ...s, messages: newMessages }
+        : s
+    ))
+  }, [activeSessionId])
+
+  // Gera título automático baseado na primeira mensagem
+  const generateTitle = useCallback((text) => {
+    const maxLength = 30
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+  }, [])
+
+  // Handlers do gerenciador de sessões
+  const handleNewSession = useCallback(() => {
+    const newSession = createNewSession()
+    setSessions(prev => [newSession, ...prev])
+    setActiveSessionId(newSession.id)
+  }, [])
+
+  const handleSelectSession = useCallback((sessionId) => {
+    setActiveSessionId(sessionId)
+  }, [])
+
+  const handleDeleteSession = useCallback((sessionId) => {
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.id !== sessionId)
+      if (filtered.length === 0) {
+        const newSession = createNewSession()
+        setActiveSessionId(newSession.id)
+        return [newSession]
+      }
+      if (sessionId === activeSessionId) {
+        setActiveSessionId(filtered[0].id)
+      }
+      return filtered
+    })
+  }, [activeSessionId])
+
+  const handleRenameSession = useCallback((sessionId, newTitle) => {
+    setSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, title: newTitle } : s
+    ))
+  }, [])
+
   const sendMessage = async () => {
     const text = inputValue.trim()
     if (!text) return
 
     const newUserMessage = { text, isUser: true }
-    setMessages(prev => [...prev, newUserMessage])
+    const updatedMessages = [...messages, newUserMessage]
+    updateSessionMessages(updatedMessages)
+    
+    // Atualiza título se for a primeira mensagem
+    if (messages.length === 0) {
+      setSessions(prev => prev.map(s => 
+        s.id === activeSessionId ? { ...s, title: generateTitle(text) } : s
+      ))
+    }
+    
     setInputValue('')
     setIsTyping(true)
 
@@ -55,7 +155,8 @@ function ChatContainer({ activeTheme, userInfo }) {
         body: JSON.stringify({
           input_value: text,
           output_type: 'chat',
-          input_type: 'chat'
+          input_type: 'chat',
+          session_id: activeSessionId
         })
       })
 
@@ -73,10 +174,10 @@ function ChatContainer({ activeTheme, userInfo }) {
         }
       }
 
-      setMessages(prev => [...prev, { text: botResponse, isUser: false }])
+      updateSessionMessages([...updatedMessages, { text: botResponse, isUser: false }])
     } catch (error) {
       console.error('Erro:', error)
-      setMessages(prev => [...prev, { text: 'Ops! Ocorreu um erro. Tente novamente.', isUser: false }])
+      updateSessionMessages([...updatedMessages, { text: 'Ops! Ocorreu um erro. Tente novamente.', isUser: false }])
     } finally {
       setIsTyping(false)
     }
@@ -93,77 +194,145 @@ function ChatContainer({ activeTheme, userInfo }) {
     ? 'Olá! Sou seu assistente de Cromoterapia. Posso ajudar você a entender como as cores influenciam sua saúde e bem-estar.'
     : 'Olá! Sou seu assistente de Metafísica da Saúde. Posso ajudar você a compreender as causas emocionais por trás dos sintomas físicos.'
 
+  // Prepara dados das sessões para o gerenciador
+  const sessionsForManager = sessions.map(s => ({
+    id: s.id,
+    title: s.title,
+    messageCount: s.messages.length
+  }))
+
   return (
-    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full min-h-[500px]">
-      {/* Header do Chat */}
-      <div className={`${colors.header} text-white px-5 py-4 flex items-center gap-3`}>
-        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-          <Sparkles className={`w-5 h-5 ${colors.icon}`} />
-        </div>
-        <div>
-          <h3 className="font-semibold">
-            {activeTheme === 'cromoterapia' ? '🎨 Cromoterapia' : '💫 Metafísica da Saúde'}
-          </h3>
-          <p className="text-xs text-white/80">Viva numa boa! - Converse comigo</p>
-        </div>
-      </div>
-
-      {/* Área de Mensagens */}
-      <div ref={chatAreaRef} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-        {/* Mensagem de Boas-vindas */}
-        <div className={`${colors.welcome} rounded-2xl p-5 text-center`}>
-          <h3 className={`${colors.welcomeTitle} font-semibold text-lg mb-2`}>
-            Bem-vindo(a)! 👋
-          </h3>
-          <p className="text-gray-600 text-sm">{welcomeMessage}</p>
-          {userInfo.name && (
-            <p className="mt-2 text-xs text-gray-500">
-              Olá, <span className="font-semibold text-purple-600">{userInfo.name}</span>! Como posso ajudar?
-            </p>
-          )}
-        </div>
-
-        {/* Mensagens */}
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-              msg.isUser
-                ? `${colors.userMsg} text-white self-end rounded-br-sm`
-                : 'bg-gray-100 text-gray-700 self-start rounded-bl-sm'
-            }`}
-          >
-            {msg.text}
-          </div>
-        ))}
-
-        {/* Indicador de Digitação */}
-        {isTyping && (
-          <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 self-start flex gap-1">
-            <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
-            <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
-            <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
-          </div>
+    <div className="bg-white rounded-xl md:rounded-2xl overflow-hidden flex flex-col h-full max-h-full min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        {/* Overlay para mobile quando sidebar está aberta */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
-      </div>
 
-      {/* Área de Input */}
-      <div className="border-t border-gray-200 p-4 flex gap-3 bg-white">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Digite sua mensagem..."
-          className="flex-1 px-5 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-purple-500 transition-colors"
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!inputValue.trim() || isTyping}
-          className={`${colors.header} text-white w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100`}
-        >
-          <Send className="w-5 h-5" />
-        </button>
+        {/* Sidebar - Gerenciador de Sessões e UserPanel */}
+        <div className={`
+          fixed md:static inset-y-0 left-0 z-50
+          w-full md:w-64 flex-shrink-0 border-r border-gray-200 flex flex-col
+          bg-white transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}>
+          {/* Header da Sidebar no Mobile */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 md:hidden">
+            <h3 className="font-semibold text-gray-700 text-sm">Menu</h3>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Gerenciador de Sessões */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ChatSessionManager
+              sessions={sessionsForManager}
+              activeSessionId={activeSessionId}
+              onSelectSession={(id) => {
+                handleSelectSession(id)
+                setSidebarOpen(false)
+              }}
+              onNewSession={handleNewSession}
+              onDeleteSession={handleDeleteSession}
+              onRenameSession={handleRenameSession}
+              themeColors={colors}
+            />
+          </div>
+          
+          {/* Divisória */}
+          <div className="border-t border-gray-200"></div>
+          
+          {/* UserPanel */}
+          <div className="flex-shrink-0 p-3 md:p-4">
+            <UserPanel userInfo={userInfo} setUserInfo={setUserInfo} />
+          </div>
+        </div>
+
+        {/* Chat Principal */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header do Chat */}
+          <div className={`${colors.header} text-white px-3 md:px-5 py-3 md:py-4 flex items-center gap-2 md:gap-3 flex-shrink-0`}>
+            {/* Botão Menu Mobile */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden p-2 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+              <MessageCircle className={`w-4 h-4 md:w-5 md:h-5 ${colors.icon}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-white/80 truncate">{activeSession?.title || 'Nova conversa'}</p>
+            </div>
+          </div>
+
+          {/* Área de Mensagens */}
+          <div ref={chatAreaRef} className="flex-1 overflow-y-auto p-3 md:p-5 flex flex-col gap-3 md:gap-4 min-h-0">
+            {/* Mensagem de Boas-vindas */}
+            <div className={`${colors.welcome} rounded-xl md:rounded-2xl p-4 md:p-5 text-center`}>
+              <h3 className={`${colors.welcomeTitle} font-semibold text-base md:text-lg mb-2`}>
+                Bem-vindo(a)! 👋
+              </h3>
+              <p className="text-gray-600 text-xs md:text-sm">{welcomeMessage}</p>
+              {userInfo.name && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Olá, <span className="font-semibold text-purple-600">{userInfo.name}</span>! Como posso ajudar?
+                </p>
+              )}
+            </div>
+
+            {/* Mensagens */}
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`max-w-[85%] md:max-w-[80%] px-3 md:px-4 py-2 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm leading-relaxed ${
+                  msg.isUser
+                    ? `${colors.userMsg} text-white self-end rounded-br-sm`
+                    : 'bg-gray-100 text-gray-700 self-start rounded-bl-sm'
+                }`}
+              >
+                {msg.text}
+              </div>
+            ))}
+
+          {/* Indicador de Digitação */}
+          {isTyping && (
+            <div className="bg-gray-100 rounded-xl md:rounded-2xl rounded-bl-sm px-3 md:px-4 py-2 md:py-3 self-start flex gap-1">
+              <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></span>
+            </div>
+          )}
+          </div>
+
+          {/* Área de Input */}
+          <div className="border-t border-gray-200 p-2 md:p-4 flex gap-2 md:gap-3 bg-white flex-shrink-0">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite sua mensagem..."
+              className="flex-1 px-3 md:px-5 py-2 md:py-3 border-2 border-gray-200 rounded-full text-xs md:text-sm outline-none focus:border-purple-500 transition-colors"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!inputValue.trim() || isTyping}
+              className={`${colors.header} text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0`}
+            >
+              <Send className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
