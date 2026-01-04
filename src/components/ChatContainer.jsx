@@ -3,7 +3,9 @@ import { Send, MessageCircle, Menu, X } from 'lucide-react'
 import ChatSessionManager from './ChatSessionManager'
 import UserPanel from './UserPanel'
 
-const STORAGE_KEY = 'langflow_chat_sessions'
+const DB_NAME = 'valcapelli_chat_db'
+const DB_VERSION = 1
+const STORE_NAME = 'sessions'
 // Tempo de expiração em milissegundos (7 dias)
 const EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000
 
@@ -22,47 +24,144 @@ const isSessionExpired = (session) => {
   return sessionAge > EXPIRY_TIME
 }
 
-const loadSessions = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      const sessions = JSON.parse(stored)
-      // Filtra sessões expiradas (criadas há mais de 7 dias)
-      const validSessions = sessions.filter(session => !isSessionExpired(session))
-      
-      // Se todas as sessões expiraram, cria uma nova
-      if (validSessions.length === 0) {
-        return [createNewSession()]
+// Abre conexão com IndexedDB
+const openDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve(request.result)
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+        objectStore.createIndex('createdAt', 'createdAt', { unique: false })
       }
-      
-      // Se algumas sessões foram removidas, salva as válidas
-      if (validSessions.length < sessions.length) {
-        saveSessions(validSessions)
-      }
-      
-      return validSessions
     }
-  } catch (e) {
-    console.error('Erro ao carregar sessões:', e)
-  }
-  return [createNewSession()]
+  })
 }
 
-const saveSessions = (sessions) => {
+// Carrega todas as sessões do IndexedDB
+const loadSessions = async () => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    const request = store.getAll()
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        const sessions = request.result || []
+        // Filtra sessões expiradas (criadas há mais de 7 dias)
+        const validSessions = sessions.filter(session => !isSessionExpired(session))
+        
+        // Remove sessões expiradas do banco
+        if (validSessions.length < sessions.length) {
+          const expiredSessions = sessions.filter(session => isSessionExpired(session))
+          expiredSessions.forEach(session => {
+            deleteSession(session.id).catch(console.error)
+          })
+        }
+        
+        // Se todas as sessões expiraram, cria uma nova
+        if (validSessions.length === 0) {
+          const newSession = createNewSession()
+          saveSessions([newSession]).catch(console.error)
+          resolve([newSession])
+        } else {
+          resolve(validSessions)
+        }
+      }
+
+      request.onerror = () => {
+        console.error('Erro ao carregar sessões:', request.error)
+        resolve([createNewSession()])
+      }
+    })
+  } catch (e) {
+    console.error('Erro ao abrir banco de dados:', e)
+    return [createNewSession()]
+  }
+}
+
+// Salva sessões no IndexedDB
+const saveSessions = async (sessions) => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+
+    // Limpa todas as sessões existentes
+    await new Promise((resolve, reject) => {
+      const clearRequest = store.clear()
+      clearRequest.onsuccess = () => resolve()
+      clearRequest.onerror = () => reject(clearRequest.error)
+    })
+
+    // Adiciona as novas sessões
+    const promises = sessions.map(session => {
+      return new Promise((resolve, reject) => {
+        const request = store.add(session)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
+    })
+
+    await Promise.all(promises)
   } catch (e) {
     console.error('Erro ao salvar sessões:', e)
   }
 }
 
+// Deleta uma sessão específica
+const deleteSession = async (sessionId) => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    
+    return new Promise((resolve, reject) => {
+      const request = store.delete(sessionId)
+      request.onsuccess = () => resolve()
+      request.onerror = () => reject(request.error)
+    })
+  } catch (e) {
+    console.error('Erro ao deletar sessão:', e)
+  }
+}
+
 function ChatContainer({ activeTheme, userInfo, setUserInfo }) {
-  const [sessions, setSessions] = useState(loadSessions)
-  const [activeSessionId, setActiveSessionId] = useState(() => loadSessions()[0]?.id)
+  const [sessions, setSessions] = useState([])
+  const [activeSessionId, setActiveSessionId] = useState(null)
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const chatAreaRef = useRef(null)
+
+  // Carrega sessões do IndexedDB ao montar o componente
+  useEffect(() => {
+    const initializeSessions = async () => {
+      setIsLoading(true)
+      try {
+        const loadedSessions = await loadSessions()
+        setSessions(loadedSessions)
+        if (loadedSessions.length > 0 && !activeSessionId) {
+          setActiveSessionId(loadedSessions[0].id)
+        }
+      } catch (error) {
+        console.error('Erro ao inicializar sessões:', error)
+        const newSession = createNewSession()
+        setSessions([newSession])
+        setActiveSessionId(newSession.id)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeSessions()
+  }, [])
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0]
   const messages = activeSession?.messages || []
@@ -90,10 +189,12 @@ function ChatContainer({ activeTheme, userInfo, setUserInfo }) {
 
   const colors = themeColors[activeTheme]
 
-  // Salva sessões no localStorage quando mudam
+  // Salva sessões no IndexedDB quando mudam
   useEffect(() => {
-    saveSessions(sessions)
-  }, [sessions])
+    if (!isLoading && sessions.length > 0) {
+      saveSessions(sessions).catch(console.error)
+    }
+  }, [sessions, isLoading])
 
   useEffect(() => {
     if (chatAreaRef.current) {
@@ -128,6 +229,9 @@ function ChatContainer({ activeTheme, userInfo, setUserInfo }) {
   }, [])
 
   const handleDeleteSession = useCallback((sessionId) => {
+    // Deleta do IndexedDB
+    deleteSession(sessionId).catch(console.error)
+    
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== sessionId)
       if (filtered.length === 0) {
@@ -221,6 +325,15 @@ function ChatContainer({ activeTheme, userInfo, setUserInfo }) {
     title: s.title,
     messageCount: s.messages.length
   }))
+
+  // Mostra loading enquanto inicializa
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-xl md:rounded-2xl overflow-hidden flex flex-col h-full max-h-full min-h-0 items-center justify-center">
+        <div className="text-gray-400 text-sm">Carregando...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-xl md:rounded-2xl overflow-hidden flex flex-col h-full max-h-full min-h-0">
