@@ -27,7 +27,7 @@ function ColorPicker({ bgColor, setBgColor }) {
   }
 
   return (
-    <div className="fixed bottom-20 right-4 z-50">
+    <div className="fixed top-1/2 -translate-y-1/2 right-4 sm:top-auto sm:translate-y-0 sm:bottom-20 z-50">
       {/* Botão para abrir/fechar */}
       <button
         onClick={() => {
@@ -46,7 +46,7 @@ function ColorPicker({ bgColor, setBgColor }) {
 
       {/* Painel de cores */}
       {isOpen && !showSpectrum && (
-        <div className="absolute bottom-14 right-0 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 w-52 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute top-14 sm:top-auto sm:bottom-14 right-0 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 w-52 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <p className="text-xs text-gray-500 mb-3 font-medium">Cor de fundo</p>
           <div className="grid grid-cols-5 gap-2">
             {colors.map((color, index) => (
@@ -80,7 +80,7 @@ function ColorPicker({ bgColor, setBgColor }) {
 
       {/* Seletor de espectro cromático */}
       {isOpen && showSpectrum && (
-        <div className="absolute bottom-14 right-0 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute top-14 sm:top-auto sm:bottom-14 right-0 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-gray-500 font-medium">Escolha sua cor</p>
             <button 
