@@ -17,7 +17,7 @@ function Header() {
             />
           </div>
           <h1 className="text-lg font-semibold text-white drop-shadow-md">
-            Professor Valcapelli
+            Valcapelli - Metafísica da Saúde e Cromoterapia
           </h1>
         </a>
       </div>
