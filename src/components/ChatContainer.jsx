@@ -7,10 +7,11 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [sessionId] = useState(() => crypto.randomUUID())
   const chatAreaRef = useRef(null)
 
   const API_KEY = import.meta.env.VITE_API_KEY || ''
-  const FLOW_ID = import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
+  const FLOW_ID = import.meta.env.VITE_FLOW_ID || 'c9308981-7444-40bd-8ee9-ae1426d8f9bb'
   const HOST_URL = import.meta.env.VITE_HOST_URL || 'https://langflow.inovai.app'
 
   const themeColors = {
@@ -57,7 +58,8 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
         body: JSON.stringify({
           input_value: text,
           output_type: 'chat',
-          input_type: 'chat'
+          input_type: 'chat',
+          session_id: sessionId
         })
       })
 
