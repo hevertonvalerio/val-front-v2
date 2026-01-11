@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  valcapelli-frontend:
+    image: manoelfg123/frt-valcapelli:latest
+    
+    # === DNS FIX CONFIGURATION ===
+    dns:
+      - 127.0.0.11    # DNS interno do Docker (forçar uso)
+      - 8.8.8.8       # DNS público como fallback
+    dns_search:
+      - .             # Buscar no domínio atual primeiro
+    
+    ports:
+      - "3000"
+    
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      # === RESTART POLICY MELHORADA ===
+      restart_policy:
+        condition: on-failure
+        delay: 15s        # Aguardar 15s antes de reiniciar
+        max_attempts: 5
+        window: 300s      # Janela de 5 minutos para contabilizar falhas
+      # === RESOURCE LIMITS ===
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.10'   # Garantindo pelo menos 0.25 vCPU
+          memory: 64M   # Garantindo pelo menos 128MB
+      placement:
+        constraints: []
+      labels:
+        traefik.enable: 'true'
+        traefik.http.routers.valcapelli.rule: Host(`valcapelli.inovai.app`)
+        traefik.http.routers.valcapelli.service: valcapelli
+        traefik.http.services.valcapelli.loadbalancer.server.port: '3000'
+        traefik.http.routers.valcapelli.entrypoints: websecure
+        traefik.http.routers.valcapelli.tls: 'true'
+        traefik.http.routers.valcapelli.tls.certresolver: letsencryptresolver
+        traefik.http.middlewares.valcapelli-compress.compress: 'true'
+        traefik.http.routers.valcapelli.middlewares: valcapelli-compress
+    
+    # === ENVIRONMENT VARIABLES (runtime) ===
+    environment:
+      - API_KEY=sk-UE8WusRM75LoODuy4_cZtTgDi1ExYeMkSWU-GBVUeHw
+      - FLOW_ID=c9308981-7444-40bd-8ee9-ae1426d8f9bb
+      - HOST_URL=https://langflow.inovai.app
+    
+    # === HEALTH CHECK ===
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # === NETWORK COM ALIAS (força refresh) ===
+    networks:
+      - network_public
+
+networks:
+  network_public:
+    external: true
+    name: network_public

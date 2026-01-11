@@ -166,9 +166,9 @@ function ChatContainer({ activeTheme, userInfo, setUserInfo }) {
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0]
   const messages = activeSession?.messages || []
 
-  const API_KEY = import.meta.env.VITE_API_KEY || ''
-  const FLOW_ID = import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
-  const HOST_URL = import.meta.env.VITE_HOST_URL || 'https://langflow.inovai.app'
+  const API_KEY = window.__APP_CONFIG__?.API_KEY || ''
+  const FLOW_ID = window.__APP_CONFIG__?.FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
+  const HOST_URL = window.__APP_CONFIG__?.HOST_URL || 'https://langflow.inovai.app'
 
   const themeColors = {
     cromoterapia: {
