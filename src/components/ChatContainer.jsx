@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Palette, Heart } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import langsmithApi from '../services/langsmithApi'
 
 function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
   const [messages, setMessages] = useState([])
@@ -49,35 +50,48 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo }) {
     setIsTyping(true)
 
     try {
-      const response = await fetch(`${HOST_URL}/api/v1/run/${FLOW_ID}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY
-        },
-        body: JSON.stringify({
-          input_value: text,
-          output_type: 'chat',
-          input_type: 'chat',
-          session_id: sessionId
-        })
-      })
+      const stream = await langsmithApi.sendMessage(text)
+      let botResponse = ''
+      let messageIndex = null
 
-      const data = await response.json()
-      let botResponse = 'Desculpe, não consegui processar sua mensagem.'
+      for await (const chunk of langsmithApi.streamResponse(stream)) {
+        console.log('Chunk recebido:', chunk)
+        
+        const data = chunk.data || chunk
+        const messages = data.messages || data.output?.messages || []
+        
+        console.log('Mensagens extraídas:', messages)
+        
+        if (messages.length > 0) {
+          const lastMessage = messages[messages.length - 1]
+          console.log('Última mensagem:', lastMessage)
+          
+          if (lastMessage?.role === 'assistant' || lastMessage?.type === 'ai' || lastMessage?.role === 'ai') {
+            const content = lastMessage.content || lastMessage.text || lastMessage.message || ''
+            
+            if (content) {
+              botResponse = content
+              console.log('Conteúdo extraído:', botResponse)
 
-      if (data.outputs?.[0]?.outputs?.[0]) {
-        const output = data.outputs[0].outputs[0]
-        if (output.results?.message?.text) {
-          botResponse = output.results.message.text
-        } else if (output.messages?.[0]?.message) {
-          botResponse = output.messages[0].message
-        } else if (output.artifacts?.message) {
-          botResponse = output.artifacts.message
+              setMessages(prev => {
+                const newMessages = [...prev]
+                if (messageIndex === null) {
+                  newMessages.push({ text: botResponse, isUser: false })
+                  messageIndex = newMessages.length - 1
+                } else {
+                  newMessages[messageIndex] = { text: botResponse, isUser: false }
+                }
+                return newMessages
+              })
+            }
+          }
         }
       }
 
-      setMessages(prev => [...prev, { text: botResponse, isUser: false }])
+      if (!botResponse) {
+        botResponse = 'Desculpe, não consegui processar sua mensagem.'
+        setMessages(prev => [...prev, { text: botResponse, isUser: false }])
+      }
     } catch (error) {
       console.error('Erro:', error)
       setMessages(prev => [...prev, { text: 'Ops! Ocorreu um erro. Tente novamente.', isUser: false }])
