@@ -123,10 +123,11 @@ function App() {
     >
       <Header />
       
-      <main className="flex-1 flex items-stretch justify-center px-2 sm:px-4 py-2 gap-2 min-h-0">
-        {/* Painel de sessões à esquerda */}
-        <div className="w-64 flex-shrink-0 hidden lg:block">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl h-full flex flex-col">
+      <main className="flex-1 flex items-stretch justify-center px-2 sm:px-4 py-2 gap-3 min-h-0">
+        {/* Painel lateral à esquerda */}
+        <div className="w-72 flex-shrink-0 hidden lg:block">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl h-full flex flex-col overflow-hidden">
+            {/* Conversas */}
             <ChatSessionManager
               sessions={sessions}
               activeSessionId={currentSession?.id}
@@ -136,6 +137,8 @@ function App() {
               onRenameSession={renameSession}
               themeColors={themeColors[activeTheme]}
             />
+            
+            {/* Dados do Usuário e Links */}
             <div className="border-t border-gray-200">
               <UserPanel userInfo={userInfo} setUserInfo={setUserInfo} />
             </div>

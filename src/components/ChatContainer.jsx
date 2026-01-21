@@ -226,19 +226,6 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, 
 
       {/* Área de Mensagens */}
       <div ref={chatAreaRef} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-        {/* Mensagem de Boas-vindas */}
-        <div className={`${colors.welcome} rounded-2xl p-5 text-center`}>
-          <h3 className={`${colors.welcomeTitle} font-semibold text-lg mb-2`}>
-            Bem-vindo(a)! 👋
-          </h3>
-          <p className="text-gray-600 text-sm">{welcomeMessage}</p>
-          {userInfo.name && (
-            <p className="mt-2 text-xs text-gray-500">
-              Olá, <span className="font-semibold text-purple-600">{userInfo.name}</span>! Como posso ajudar?
-            </p>
-          )}
-        </div>
-
         {/* Mensagens */}
         {messages.map((msg, index) => (
           <div
