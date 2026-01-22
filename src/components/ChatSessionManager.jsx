@@ -24,29 +24,29 @@ function ChatSessionManager({ sessions, activeSessionId, onSelectSession, onNewS
   }
 
   return (
-    <div className="flex flex-col p-5 overflow-hidden flex-1">
+    <div className="flex flex-col p-4 overflow-hidden flex-1">
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <h3 className="font-bold text-gray-800 text-base">Conversas</h3>
+        <h3 className="font-bold text-gray-800 text-sm">Conversas</h3>
         <button
           onClick={onNewSession}
-          className={`${themeColors.header} text-white p-2 rounded-lg hover:opacity-90 transition-opacity`}
+          className={`${themeColors.header} text-white p-2 rounded-lg hover:opacity-90 transition-opacity shadow-sm`}
           title="Nova conversa"
         >
           <Plus className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2.5 min-h-0 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-0 pr-1">
         {sessions.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-6">Nenhuma conversa ainda</p>
         ) : (
           sessions.map((session) => (
             <div
               key={session.id}
-              className={`group relative p-3 rounded-xl cursor-pointer transition-all ${
+              className={`group relative p-3 rounded-lg cursor-pointer transition-all ${
                 activeSessionId === session.id
-                  ? 'bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300'
-                  : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                  ? 'bg-purple-50 border border-purple-300'
+                  : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
               }`}
               onClick={() => editingId !== session.id && onSelectSession(session.id)}
             >

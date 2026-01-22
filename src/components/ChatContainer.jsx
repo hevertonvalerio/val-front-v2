@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm'
 import indexedDBService from '../services/indexedDBService'
 import langsmithApi from '../services/langsmithApi'
 
-function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, onSessionUpdate }) {
+function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionUpdate }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -44,6 +44,11 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, 
   useEffect(() => {
     if (currentSession) {
       loadSessionMessages()
+      if (currentSession.threadId) {
+        langsmithApi.setThreadId(currentSession.threadId)
+      } else {
+        langsmithApi.clearThread()
+      }
     }
   }, [currentSession?.id])
 
@@ -78,6 +83,17 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, 
     }
   }
 
+  const generateSessionTitle = (text) => {
+    const maxLength = 40
+    const cleanText = text.trim()
+    
+    if (cleanText.length <= maxLength) {
+      return cleanText
+    }
+    
+    return cleanText.substring(0, maxLength) + '...'
+  }
+
   const saveSessionMessages = async (updatedMessages) => {
     if (!currentSession) return
 
@@ -110,6 +126,19 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, 
     await saveSessionMessages(updatedMessages)
 
     try {
+      if (!currentSession.threadId) {
+        const thread = await langsmithApi.createThread()
+        currentSession.threadId = thread.thread_id
+        
+        const autoTitle = generateSessionTitle(text)
+        currentSession.title = autoTitle
+        
+        await indexedDBService.saveSession(currentSession)
+        if (onSessionUpdate) {
+          onSessionUpdate(currentSession)
+        }
+      }
+
       const stream = await langsmithApi.sendMessage(text)
       let botResponse = ''
       let messageIndex = null
@@ -183,7 +212,7 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, 
     : 'Chatbot Metafísica da Saúde'
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+    <div className="bg-white flex flex-col h-full">
       {/* Header do Chat */}
       <div className={`${colors.header} text-white px-4 py-3 flex items-center justify-between`}>
         <div className="flex items-center gap-3">
@@ -278,21 +307,21 @@ function ChatContainer({ activeTheme, setActiveTheme, userInfo, currentSession, 
       </div>
 
       {/* Área de Input */}
-      <div className="border-t border-gray-200 p-4 flex gap-3 bg-white">
+      <div className="border-t border-gray-200 p-3 sm:p-4 flex gap-2 sm:gap-3 bg-white">
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Digite sua mensagem..."
-          className="flex-1 px-5 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-purple-500 transition-colors"
+          className="flex-1 px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
         />
         <button
           onClick={sendMessage}
           disabled={!inputValue.trim() || isTyping}
-          className={`${colors.header} text-white w-12 h-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100`}
+          className={`${colors.header} text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          <Send className="w-5 h-5" />
+          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
     </div>

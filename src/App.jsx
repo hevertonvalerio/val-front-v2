@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import ChatContainer from './components/ChatContainer'
 import ChatSessionManager from './components/ChatSessionManager'
-import UserPanel from './components/UserPanel'
-import Footer from './components/Footer'
+import SidebarLinks from './components/SidebarLinks'
+import MobileMenu from './components/MobileMenu'
 import ColorPicker from './components/ColorPicker'
 import indexedDBService from './services/indexedDBService'
 
 function App() {
   const [activeTheme, setActiveTheme] = useState('cromoterapia')
-  const [userInfo, setUserInfo] = useState({ name: '', phone: '', email: '' })
   const [bgColor, setBgColor] = useState(null)
   const [sessions, setSessions] = useState([])
   const [currentSession, setCurrentSession] = useState(null)
@@ -54,6 +53,7 @@ function App() {
       title: `Conversa ${sessions.length + 1}`,
       messages: [],
       messageCount: 0,
+      threadId: null,
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -118,16 +118,27 @@ function App() {
 
   return (
     <div 
-      className={`h-screen flex flex-col font-poppins overflow-hidden ${!bgColor ? 'animated-gradient' : ''}`}
+      className={`h-screen flex flex-col font-poppins overflow-hidden ${!bgColor ? 'animated-gradient' : 'bg-gray-50'}`}
       style={backgroundStyle}
     >
+      {/* Menu Mobile */}
+      <MobileMenu
+        sessions={sessions}
+        activeSessionId={currentSession?.id}
+        onSelectSession={selectSession}
+        onNewSession={createNewSession}
+        onDeleteSession={deleteSession}
+        themeColors={themeColors[activeTheme]}
+      />
+
+      {/* Header simplificado */}
       <Header />
       
-      <main className="flex-1 flex items-stretch justify-center px-2 sm:px-4 py-2 gap-3 min-h-0">
-        {/* Painel lateral à esquerda */}
-        <div className="w-72 flex-shrink-0 hidden lg:block">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl h-full flex flex-col overflow-hidden">
-            {/* Conversas */}
+      {/* Main Content - Container Integrado */}
+      <main className="flex-1 p-4 min-h-0 max-w-7xl w-full mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg h-full flex overflow-hidden">
+          {/* Sidebar Desktop */}
+          <aside className="w-80 hidden lg:flex flex-col border-r border-gray-200">
             <ChatSessionManager
               sessions={sessions}
               activeSessionId={currentSession?.id}
@@ -137,29 +148,22 @@ function App() {
               onRenameSession={renameSession}
               themeColors={themeColors[activeTheme]}
             />
-            
-            {/* Dados do Usuário e Links */}
-            <div className="border-t border-gray-200">
-              <UserPanel userInfo={userInfo} setUserInfo={setUserInfo} />
-            </div>
+            <SidebarLinks />
+          </aside>
+          
+          {/* Chat Area */}
+          <div className="flex-1 min-w-0">
+            <ChatContainer 
+              activeTheme={activeTheme} 
+              setActiveTheme={setActiveTheme}
+              currentSession={currentSession}
+              onSessionUpdate={handleSessionUpdate}
+            />
           </div>
-        </div>
-        
-        {/* Chat centralizado como destaque principal */}
-        <div className="flex-1 max-w-5xl h-full">
-          <ChatContainer 
-            activeTheme={activeTheme} 
-            setActiveTheme={setActiveTheme}
-            userInfo={userInfo}
-            currentSession={currentSession}
-            onSessionUpdate={handleSessionUpdate}
-          />
         </div>
       </main>
 
-      <Footer />
-      
-      {/* Seletor de cor de fundo */}
+      {/* Seletor de cor de fundo - apenas desktop */}
       <ColorPicker bgColor={bgColor} setBgColor={setBgColor} />
     </div>
   )

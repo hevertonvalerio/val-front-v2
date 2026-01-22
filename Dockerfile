@@ -24,8 +24,8 @@ RUN npm run build
 # Estágio 2: Produção
 FROM nginx:alpine
 
-# Configurar timezone
-RUN apk add --no-cache tzdata
+# Configurar timezone e instalar dos2unix
+RUN apk add --no-cache tzdata dos2unix
 ENV TZ=America/Sao_Paulo
 
 # Copiar build do estágio anterior
@@ -36,7 +36,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copiar script de entrypoint para configuração em runtime
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Corrigir line endings e dar permissão de execução
+RUN dos2unix /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Expor porta 3000
 EXPOSE 3000

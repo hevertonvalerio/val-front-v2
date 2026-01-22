@@ -27,7 +27,7 @@ function ColorPicker({ bgColor, setBgColor }) {
   }
 
   return (
-    <div className="fixed top-1/2 -translate-y-1/2 right-4 sm:top-auto sm:translate-y-0 sm:bottom-20 z-50">
+    <div className="hidden lg:block fixed top-1/2 -translate-y-1/2 right-4 sm:top-auto sm:translate-y-0 sm:bottom-20 z-50">
       {/* Botão para abrir/fechar */}
       <button
         onClick={() => {
