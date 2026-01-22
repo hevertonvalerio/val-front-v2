@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   valcapelli-frontend:
-    image: manoelfg123/chatbot-valcapelli:latest
+    image: manoelfg123/frt-valcapelli:latest
     
     # === DNS FIX CONFIGURATION ===
     dns:
@@ -35,8 +35,8 @@ services:
           cpus: '0.5'
           memory: 256M
         reservations:
-          cpus: '0.10'   # Garantindo pelo menos 0.10 vCPU
-          memory: 64M    # Garantindo pelo menos 64MB
+          cpus: '0.10'   # Garantindo pelo menos 0.25 vCPU
+          memory: 64M   # Garantindo pelo menos 128MB
       placement:
         constraints: []
       labels:
@@ -55,9 +55,6 @@ services:
       - API_KEY=sk-psXRIq3r5RqA38W2BE7EnJnFXzbQGIQeIg_kpTivY4w
       - FLOW_ID=fe90bd82-d73c-42cb-8ae3-c238af206821
       - HOST_URL=https://langflow.inovai.com.br
-      - GRAPH_ID=fe90bd82-d73c-42cb-8ae3-c238af206821
-      - LANGSMITH_API_KEY=sk-psXRIq3r5RqA38W2BE7EnJnFXzbQGIQeIg_kpTivY4w
-      - LANGSMITH_API_URL=https://langgraph-val.inovai.app
     
     # === HEALTH CHECK ===
     healthcheck:
