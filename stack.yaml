@@ -55,6 +55,9 @@ services:
       - API_KEY=sk-psXRIq3r5RqA38W2BE7EnJnFXzbQGIQeIg_kpTivY4w
       - FLOW_ID=fe90bd82-d73c-42cb-8ae3-c238af206821
       - HOST_URL=https://langflow.inovai.com.br
+      - GRAPH_ID=fe90bd82-d73c-42cb-8ae3-c238af206821
+      - LANGSMITH_API_KEY=sk-psXRIq3r5RqA38W2BE7EnJnFXzbQGIQeIg_kpTivY4w
+      - LANGSMITH_API_URL=https://langgraph-val.inovai.app
     
     # === HEALTH CHECK ===
     healthcheck:
