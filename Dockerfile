@@ -12,8 +12,8 @@ WORKDIR /app
 # Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar dependências
-RUN npm ci --only=production
+# Instalar todas as dependências (incluindo devDependencies para o build)
+RUN npm ci
 
 # Copiar código fonte
 COPY . .
@@ -38,8 +38,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Expor porta 80
-EXPOSE 80
+# Expor porta 3000
+EXPOSE 3000
 
 # Usar entrypoint customizado
 ENTRYPOINT ["/docker-entrypoint.sh"]
