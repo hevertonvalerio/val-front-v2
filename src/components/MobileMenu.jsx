@@ -14,10 +14,10 @@ function MobileMenu({ sessions, activeSessionId, onSelectSession, onNewSession, 
 
   return (
     <>
-      {/* Botão Menu Mobile */}
+      {/* Botão Menu Mobile - integrado ao header */}
       <button
         onClick={() => setIsOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+        className="lg:hidden fixed top-3 left-3 z-40 w-11 h-11 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg flex items-center justify-center hover:bg-white transition-all border border-gray-100"
       >
         <Menu className="w-5 h-5 text-gray-700" />
       </button>

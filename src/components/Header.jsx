@@ -1,6 +1,6 @@
 function Header() {
   return (
-    <header className="py-4 pl-16 pr-4 lg:px-4">
+    <header className="py-2 pl-14 pr-3 sm:py-4 sm:pl-16 sm:pr-4 lg:px-4">
       <div className="max-w-7xl mx-auto flex items-center justify-start">
         <a 
           href="https://www.valcapelli.com/" 

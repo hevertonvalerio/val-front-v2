@@ -118,7 +118,7 @@ function App() {
 
   return (
     <div 
-      className={`h-screen flex flex-col font-poppins overflow-hidden ${!bgColor ? 'animated-gradient' : 'bg-gray-50'}`}
+      className={`h-dvh flex flex-col font-poppins overflow-hidden bg-white sm:bg-gray-50 ${!bgColor && 'sm:animated-gradient'}`}
       style={backgroundStyle}
     >
       {/* Menu Mobile */}
@@ -131,12 +131,14 @@ function App() {
         themeColors={themeColors[activeTheme]}
       />
 
-      {/* Header simplificado */}
-      <Header />
+      {/* Header simplificado - apenas desktop */}
+      <div className="hidden sm:block">
+        <Header />
+      </div>
       
       {/* Main Content - Container Integrado */}
-      <main className="flex-1 p-4 min-h-0 max-w-7xl w-full mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg h-full flex overflow-hidden">
+      <main className="flex-1 sm:p-4 min-h-0 max-w-7xl w-full mx-auto">
+        <div className="bg-white sm:rounded-2xl sm:shadow-lg h-full flex overflow-hidden">
           {/* Sidebar Desktop */}
           <aside className="w-80 hidden lg:flex flex-col border-r border-gray-200">
             <ChatSessionManager

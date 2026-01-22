@@ -9,7 +9,10 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
   const chatAreaRef = useRef(null)
+  const inputRef = useRef(null)
+  const containerRef = useRef(null)
   const SESSION_EXPIRY_DAYS = 7
 
   const API_KEY = window.ENV?.API_KEY || import.meta.env.VITE_API_KEY || ''
@@ -54,6 +57,29 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
 
   useEffect(() => {
     clearExpiredSessions()
+  }, [])
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height
+        const windowHeight = window.innerHeight
+        const diff = windowHeight - viewportHeight
+        setKeyboardHeight(diff > 50 ? diff : 0)
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+      window.visualViewport.addEventListener('scroll', handleResize)
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize)
+        window.visualViewport.removeEventListener('scroll', handleResize)
+      }
+    }
   }, [])
 
   const clearExpiredSessions = async () => {
@@ -212,54 +238,60 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
     : 'Chatbot Metafísica da Saúde'
 
   return (
-    <div className="bg-white flex flex-col h-full">
+    <div 
+      ref={containerRef}
+      className="bg-white h-full flex flex-col"
+      style={{ 
+        paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+        overflow: 'hidden'
+      }}
+    >
       {/* Header do Chat */}
-      <div className={`${colors.header} text-white px-4 py-3 flex items-center justify-between`}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 p-1">
-            <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+      <div className={`${colors.header} text-white pl-16 pr-3 py-3 sm:px-4 sm:py-3 flex items-center justify-between lg:pl-4`}>
+        <div className="flex items-center gap-3 sm:gap-3">
+          <div className="w-10 h-10 sm:w-9 sm:h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 p-1">
+            <img src="/logo.png" alt="Logo" className="w-7 h-7 sm:w-6 sm:h-6 object-contain" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Chatbot Valcapelli</h3>
-            <p className="text-xs text-white/80">Viva numa boa!</p>
+            <h3 className="font-bold text-base sm:text-sm">Valcapelli</h3>
           </div>
         </div>
         
-        {/* Seletor de Temas */}
-        <div className="flex gap-2">
+        {/* Seletor de Temas - apenas desktop */}
+        <div className="hidden sm:flex gap-2">
           <button
             onClick={() => setActiveTheme('cromoterapia')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
               activeTheme === 'cromoterapia'
                 ? 'bg-white text-purple-600 shadow-md'
                 : 'bg-white/20 text-white hover:bg-white/30'
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Cromoterapia</span>
+            <span>Cromoterapia</span>
           </button>
           
           <button
             onClick={() => setActiveTheme('metafisica')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
               activeTheme === 'metafisica'
                 ? 'bg-white text-teal-600 shadow-md'
                 : 'bg-white/20 text-white hover:bg-white/30'
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Metafísica</span>
+            <span>Metafísica</span>
           </button>
         </div>
       </div>
 
       {/* Área de Mensagens */}
-      <div ref={chatAreaRef} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+      <div ref={chatAreaRef} className="flex-1 min-h-0 overflow-y-auto p-1.5 sm:p-5 flex flex-col gap-1.5 sm:gap-4 overscroll-contain">
         {/* Mensagens */}
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+            className={`max-w-[85%] sm:max-w-[85%] px-3 py-1.5 sm:px-4 sm:py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
               msg.isUser
                 ? `${colors.userMsg} text-white self-end rounded-br-sm`
                 : 'bg-gray-100 text-gray-700 self-start rounded-bl-sm'
@@ -307,19 +339,27 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
       </div>
 
       {/* Área de Input */}
-      <div className="border-t border-gray-200 p-3 sm:p-4 flex gap-2 sm:gap-3 bg-white">
+      <div className="border-t border-gray-200 p-2 sm:p-4 flex gap-2 sm:gap-3 bg-white flex-shrink-0 pb-safe">
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
+          onFocus={() => {
+            setTimeout(() => {
+              if (chatAreaRef.current) {
+                chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
+              }
+            }, 300)
+          }}
           placeholder="Digite sua mensagem..."
-          className="flex-1 px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+          className="flex-1 px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
         />
         <button
           onClick={sendMessage}
           disabled={!inputValue.trim() || isTyping}
-          className={`${colors.header} text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`${colors.header} text-white px-3 sm:px-5 py-2 sm:py-3 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
         >
           <Send className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
