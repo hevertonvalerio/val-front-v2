@@ -143,25 +143,48 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
     const text = inputValue.trim()
     if (!text) return
 
+    let session = currentSession
+
+    if (!session) {
+      session = {
+        id: crypto.randomUUID(),
+        title: generateSessionTitle(text),
+        messages: [],
+        messageCount: 0,
+        threadId: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+    }
+
     const newUserMessage = { text, isUser: true, timestamp: Date.now() }
     const updatedMessages = [...messages, newUserMessage]
     setMessages(updatedMessages)
     setInputValue('')
     setIsTyping(true)
     
-    await saveSessionMessages(updatedMessages)
+    session.messages = updatedMessages
+    session.messageCount = updatedMessages.length
+    session.updatedAt = Date.now()
+
+    if (session.isTemporary) {
+      session.title = generateSessionTitle(text)
+      delete session.isTemporary
+    }
 
     try {
-      if (!currentSession.threadId) {
+      if (!session.threadId) {
         const thread = await langsmithApi.createThread()
-        currentSession.threadId = thread.thread_id
+        session.threadId = thread.thread_id
         
-        const autoTitle = generateSessionTitle(text)
-        currentSession.title = autoTitle
-        
-        await indexedDBService.saveSession(currentSession)
+        await indexedDBService.saveSession(session)
         if (onSessionUpdate) {
-          onSessionUpdate(currentSession)
+          onSessionUpdate(session)
+        }
+      } else {
+        await indexedDBService.saveSession(session)
+        if (onSessionUpdate) {
+          onSessionUpdate(session)
         }
       }
 

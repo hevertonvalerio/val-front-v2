@@ -108,6 +108,15 @@ class LangSmithAPI {
       this.threadId = thread.thread_id
     }
 
+    if (!this.assistantId) {
+      const threadData = await this.getThread(this.threadId)
+      this.assistantId = threadData.metadata?.assistant_id
+      
+      if (!this.assistantId) {
+        await this.createAssistant()
+      }
+    }
+
     try {
       const response = await fetch(
         `${this.baseURL}/threads/${this.threadId}/runs/stream`,
@@ -261,6 +270,7 @@ class LangSmithAPI {
 
   clearThread() {
     this.threadId = null
+    this.assistantId = null
   }
 }
 

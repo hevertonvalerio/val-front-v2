@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import ChatContainer from './components/ChatContainer'
 import ChatSessionManager from './components/ChatSessionManager'
@@ -7,7 +8,10 @@ import MobileMenu from './components/MobileMenu'
 import ColorPicker from './components/ColorPicker'
 import indexedDBService from './services/indexedDBService'
 
-function App() {
+function ChatPage() {
+  const { sessionId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [activeTheme, setActiveTheme] = useState('cromoterapia')
   const [bgColor, setBgColor] = useState(null)
   const [sessions, setSessions] = useState([])
@@ -36,41 +40,56 @@ function App() {
       const sortedSessions = allSessions.sort((a, b) => b.updatedAt - a.updatedAt)
       setSessions(sortedSessions)
       
-      if (sortedSessions.length > 0) {
-        setCurrentSession(sortedSessions[0])
+      if (sessionId) {
+        const existingSession = sortedSessions.find(s => s.id === sessionId)
+        if (existingSession) {
+          setCurrentSession(existingSession)
+        } else {
+          const tempSession = createTempSession()
+          setSessions([tempSession, ...sortedSessions])
+          setCurrentSession(tempSession)
+          navigate(`/chat/${tempSession.id}`, { replace: true })
+        }
       } else {
-        createNewSession()
+        const tempSession = createTempSession()
+        setSessions([tempSession, ...sortedSessions])
+        setCurrentSession(tempSession)
+        navigate(`/chat/${tempSession.id}`, { replace: true })
       }
     } catch (error) {
       console.error('Erro ao inicializar sessões:', error)
-      createNewSession()
+      const tempSession = createTempSession()
+      setSessions([tempSession])
+      setCurrentSession(tempSession)
+      navigate(`/chat/${tempSession.id}`, { replace: true })
     }
   }
 
-  const createNewSession = async () => {
-    const newSession = {
+  const createTempSession = () => {
+    return {
       id: crypto.randomUUID(),
-      title: `Conversa ${sessions.length + 1}`,
+      title: 'Nova conversa',
       messages: [],
       messageCount: 0,
       threadId: null,
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      isTemporary: true
     }
+  }
 
-    try {
-      await indexedDBService.saveSession(newSession)
-      setSessions(prev => [newSession, ...prev])
-      setCurrentSession(newSession)
-    } catch (error) {
-      console.error('Erro ao criar nova sessão:', error)
-    }
+  const createNewSession = async () => {
+    const newSession = createTempSession()
+    setSessions(prev => [newSession, ...prev.filter(s => !s.isTemporary)])
+    setCurrentSession(newSession)
+    navigate(`/chat/${newSession.id}`)
   }
 
   const selectSession = (sessionId) => {
     const session = sessions.find(s => s.id === sessionId)
     if (session) {
       setCurrentSession(session)
+      navigate(`/chat/${sessionId}`)
     }
   }
 
@@ -110,7 +129,10 @@ function App() {
 
   const handleSessionUpdate = (updatedSession) => {
     setSessions(prev => {
-      const updated = prev.map(s => s.id === updatedSession.id ? updatedSession : s)
+      const exists = prev.some(s => s.id === updatedSession.id)
+      const updated = exists 
+        ? prev.map(s => s.id === updatedSession.id ? updatedSession : s)
+        : [updatedSession, ...prev]
       return updated.sort((a, b) => b.updatedAt - a.updatedAt)
     })
     setCurrentSession(updatedSession)
@@ -168,6 +190,15 @@ function App() {
       {/* Seletor de cor de fundo - apenas desktop */}
       <ColorPicker bgColor={bgColor} setBgColor={setBgColor} />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<ChatPage />} />
+      <Route path="/chat/:sessionId" element={<ChatPage />} />
+    </Routes>
   )
 }
 
