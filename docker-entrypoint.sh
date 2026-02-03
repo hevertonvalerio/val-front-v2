@@ -11,7 +11,7 @@ CONFIG_FILE="/usr/share/nginx/html/config.js"
 cat > $CONFIG_FILE << EOF
 window.ENV = {
   API_KEY: "${VITE_API_KEY:-}",
-  LANGSMITH_API_URL: "${VITE_LANGSMITH_API_URL:-https://langgraph-val.inovai.app}",
+  LANGSMITH_API_URL: "${VITE_LANGSMITH_API_URL:-https://langgraph-val.iaautomation-dev.com.br}",
   GRAPH_ID: "${VITE_GRAPH_ID:-valcapelli}"
 };
 EOF

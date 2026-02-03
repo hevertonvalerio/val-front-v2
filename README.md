@@ -38,7 +38,7 @@ npm run preview
 ## ✨ Funcionalidades
 
 - **Dois temas distintos**: Cromoterapia e Metafísica da Saúde
-- **Chat interativo** com integração Langflow
+- **Chat interativo** com integração LangGraph
 - **Formulário de registro** opcional (nome, telefone, email)
 - **Informações de contato** completas
 - **Design responsivo** e moderno

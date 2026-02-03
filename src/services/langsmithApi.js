@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_LANGSMITH_API_URL || 'https://langgraph-val.inovai.app'
+const API_BASE_URL = import.meta.env.VITE_LANGSMITH_API_URL || 'https://langgraph-val.iaautomation-dev.com.br'
 const API_KEY = import.meta.env.VITE_LANGSMITH_API_KEY || import.meta.env.VITE_API_KEY || ''
 const GRAPH_ID = import.meta.env.VITE_GRAPH_ID || 'valcapelli'
 

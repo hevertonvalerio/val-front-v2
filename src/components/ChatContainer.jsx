@@ -15,9 +15,6 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
   const containerRef = useRef(null)
   const SESSION_EXPIRY_DAYS = 7
 
-  const API_KEY = window.ENV?.API_KEY || import.meta.env.VITE_API_KEY || ''
-  const FLOW_ID = window.ENV?.FLOW_ID || import.meta.env.VITE_FLOW_ID || '61a17804-9284-446d-8e60-3801aef9bb60'
-  const HOST_URL = window.ENV?.HOST_URL || import.meta.env.VITE_HOST_URL || 'https://langflow.inovai.app'
 
   const themeColors = {
     cromoterapia: {
