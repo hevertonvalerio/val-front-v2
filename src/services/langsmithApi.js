@@ -137,7 +137,8 @@ class LangSmithAPI {
                 }
               ]
             },
-            stream_mode: ['values']
+            stream_mode: ['values'],
+            multitask_strategy: 'reject'
           })
         }
       )
@@ -157,6 +158,7 @@ class LangSmithAPI {
     const reader = stream.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    let currentEventType = ''
 
     try {
       while (true) {
@@ -173,25 +175,22 @@ class LangSmithAPI {
           
           if (!trimmedLine) continue
           
-          if (trimmedLine.startsWith('data: ')) {
+          if (trimmedLine.startsWith('event: ')) {
+            currentEventType = trimmedLine.slice(7).trim()
+          } else if (trimmedLine.startsWith('data: ')) {
             const data = trimmedLine.slice(6).trim()
             
             if (data === '[DONE]') {
-              console.log('Stream finalizado')
               return
             }
 
             try {
               const parsed = JSON.parse(data)
-              console.log('Evento parseado:', parsed)
+              parsed._eventType = currentEventType
               yield parsed
             } catch (e) {
               console.warn('Erro ao parsear linha:', data, e)
             }
-          } else if (trimmedLine.startsWith('event: ')) {
-            console.log('Tipo de evento:', trimmedLine.slice(7))
-          } else {
-            console.log('Linha não processada:', trimmedLine)
           }
         }
       }

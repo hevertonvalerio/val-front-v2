@@ -190,35 +190,35 @@ function ChatContainer({ activeTheme, setActiveTheme, currentSession, onSessionU
       let messageIndex = null
 
       for await (const chunk of langsmithApi.streamResponse(stream)) {
-        console.log('Chunk recebido:', chunk)
-        
-        const data = chunk.data || chunk
-        const messages = data.messages || data.output?.messages || []
-        
-        console.log('Mensagens extraídas:', messages)
-        
-        if (messages.length > 0) {
-          const lastMessage = messages[messages.length - 1]
-          console.log('Última mensagem:', lastMessage)
-          
-          if (lastMessage?.role === 'assistant' || lastMessage?.type === 'ai' || lastMessage?.role === 'ai') {
-            const content = lastMessage.content || lastMessage.text || lastMessage.message || ''
-            
-            if (content) {
-              botResponse = content
-              console.log('Conteúdo extraído:', botResponse)
+        const eventType = chunk._eventType
 
-              setMessages(prev => {
-                const newMessages = [...prev]
-                if (messageIndex === null) {
-                  newMessages.push({ text: botResponse, isUser: false, timestamp: Date.now() })
-                  messageIndex = newMessages.length - 1
-                } else {
-                  newMessages[messageIndex] = { text: botResponse, isUser: false, timestamp: Date.now() }
-                }
-                return newMessages
-              })
+        if (eventType === 'token' && chunk.token) {
+          botResponse += chunk.token
+
+          setMessages(prev => {
+            const newMessages = [...prev]
+            if (messageIndex === null) {
+              newMessages.push({ text: botResponse, isUser: false, timestamp: Date.now() })
+              messageIndex = newMessages.length - 1
+            } else {
+              newMessages[messageIndex] = { ...newMessages[messageIndex], text: botResponse }
             }
+            return newMessages
+          })
+        } else if (eventType === 'values' && chunk.messages) {
+          const lastAi = [...chunk.messages].reverse().find(m => m.type === 'ai' || m.role === 'assistant')
+          if (lastAi?.content) {
+            botResponse = lastAi.content
+            setMessages(prev => {
+              const newMessages = [...prev]
+              if (messageIndex === null) {
+                newMessages.push({ text: botResponse, isUser: false, timestamp: Date.now() })
+                messageIndex = newMessages.length - 1
+              } else {
+                newMessages[messageIndex] = { ...newMessages[messageIndex], text: botResponse }
+              }
+              return newMessages
+            })
           }
         }
       }
